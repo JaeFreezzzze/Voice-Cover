@@ -56,6 +56,21 @@ class RuntimeTests(TestCase):
             finally:store.db.close()
         self.assertTrue((project/"dataset"/"test").is_dir())
 
+    def test_cold_start_with_upstream_version_banner(self):
+        project=self.root/"project"; managed=project/"runtime"/"Applio-3.7.2"
+        py=managed/"env"/"python.exe"; split=project/".splitter"/"Scripts"/"python.exe"
+        weight=self.root/"955717e8-test.th"
+        for p in (managed/"core.py",py,split,weight,*(managed/n for n in runtime.REQUIRED_MODELS)):
+            p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(b"test")
+        from subprocess import CompletedProcess
+        def invoke(cmd,**kwargs):
+            output=b"Applio v3.7.2\n" if "--version" in cmd else b""
+            if "get_model(" in str(cmd[-1]):output=str(weight).encode()+b"\n"
+            return CompletedProcess(cmd,0,output)
+        with patch.dict(os.environ,VOICE_STUDIO_HOME=str(self.root/"store")),patch.object(runtime.shutil,"which",return_value="ffmpeg"),patch.object(runtime.subprocess,"run",side_effect=invoke):
+            runtime.prepare_runtime(project,None,lambda msg:None)
+        self.assertEqual(json.loads((managed.parent/"ready-3.7.2.json").read_text())["demucs_weight"],str(weight))
+
     def test_holdout_wins_across_folders_and_existing_library(self):
         ds=self.root/"dataset"
         for group in ("train","test"):

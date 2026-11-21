@@ -170,7 +170,7 @@ def prepare_runtime(root, log, report):
             return
         report("正在检查 Applio 并准备训练和换声资源…")
         version = call([py,"core.py","--version"],folder,True)
-        if not re.search(r"\b3\.7\.2\b", version):
+        if not re.search(r"(?<![\w.])v?3\.7\.2(?![\w.-])", version, re.I):
             raise ValueError(f"所选引擎版本不匹配：{version}（需要 Applio 3.7.2）")
         call([py,"-c","import torch"],folder)
         call([py,"core.py","prerequisites"],folder)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-cover-studio"
-version = "0.3.0"
+version = "0.3.1"
 description = "个人歌声模型训练、管理与 AI 翻唱桌面工作台"
 requires-python = ">=3.11"
 dependencies = ["PyQt5>=5.15.10,<5.16"]

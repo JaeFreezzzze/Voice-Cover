@@ -1,4 +1,4 @@
-# 歌声工作台 · Voice Cover Studio 0.3.0
+# 歌声工作台 · Voice Cover Studio 0.3.1
 
 用自己的录音训练 RVC 模型，把指定歌曲换成自己的声音。Windows 桌面应用采用 PyQt5，音频、模型元数据、训练参数和任务历史保存在本机。模型训练与转换调用 Applio 3.7.2，整曲分轨调用 Demucs，混音调用 FFmpeg。
 
