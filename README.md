@@ -1,4 +1,4 @@
-# 歌声工作台 · Voice Cover Studio 0.2.2
+# 歌声工作台 · Voice Cover Studio 0.2.3
 
 用自己的录音训练 RVC 模型，把指定歌曲换成自己的声音。Windows 桌面应用采用 PyQt5，音频、模型元数据、训练参数和任务历史保存在本机。模型训练与转换调用 Applio 3.7.2，整曲分轨调用 Demucs，混音调用 FFmpeg。
 
@@ -10,8 +10,8 @@ Windows 10/11 x64 可使用 Python 3.12 x64（含 3.12.10）或 Python 3.11 x64�
 
 训练和翻唱引擎按需安装一次：
 
-1. **训练、纯人声换声**：准备 [Applio 独立版 3.7.2](https://github.com/IAHispano/Applio/releases/tag/3.7.2)，按[官方安装说明](https://docs.applio.org/getting-started/installation/)完成其 Python 环境。工作台「运行环境」中选择含 `core.py` 的目录。独立 Windows 包通常自带 `env/python.exe`，自建环境可另选解释器。保存后用「下载引擎基础资源」拉取上游预训练和特征资源，再点「检查环境」。该适配器对接独立版 CLI，Applio Desktop 的安装目录有不同的布局。
-2. **导入压缩音频、生成试听或翻唱**：将 FFmpeg 和 ffprobe 加入 PATH。完整歌曲转唱还要双击 **setup-splitter.cmd** 安装独立 CPU 分轨环境，并在「运行环境」选择项目下 `.splitter/Scripts/python.exe`。首次分轨会下载 htdemucs。已有纯人声时，选择「纯人声 · 直接换声」即可跳过分轨环境。
+1. **训练与换声**：进入「运行环境 → 下载 Applio 3.7.2 Windows 包」，完整解压官方预编译包。在「Applio 3.7.2 目录」选择直接包含 `core.py` 的文件夹，点击「保存配置」。预编译包自带 Python，引擎解释器可留空。在「检查环境」看到 Applio 可用后，点击「下载引擎基础资源」。[官方发行说明](https://github.com/IAHispano/Applio/releases/tag/3.7.2)
+2. **压缩音频、试听和翻唱**：在「运行环境」点击「安装 FFmpeg」，任务会检查 `ffmpeg.exe`、`ffprobe.exe`，需要时通过 WinGet 安装。如果从[发行方](https://www.gyan.dev/ffmpeg/builds/)手动安装，请将解压后的 `bin` 加入 PATH，重启工作台。使用带伴奏的歌曲可直接点「安装 CPU 分轨」，它会同时准备 FFmpeg 和项目下的 `.splitter`，首次分轨下载 htdemucs。Demucs 解释器留空即可使用该环境，已有外部环境可选其 `python.exe`。双击 `setup-splitter.cmd` 也可安装。安装日志在「任务与作品」查看。
 3. **无 NVIDIA 独显**：选择「CPU · 本机」即可提交本地训练；预处理、特征提取、训练和推理都有独立阶段或日志。建议先用一小批干声、少量轮数验证安装并测量每轮耗时，再决定是否完成全量训练。若太慢，点「导出异机训练包」，在已装同版 Applio 的另一台机器运行包内 `train.py`，将生成的 `.vmodel` 导回。异机训练包需要自行传递，工作台不会上传个人录音。当前整曲分轨固定走 CPU。
 
 ## 工作区

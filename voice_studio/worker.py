@@ -13,21 +13,24 @@ from .store import Studio, encode, fresh_zip, uid
 def diagnostics(settings):
     root=settings.get("engine","")
     for name in ("ffmpeg","ffprobe"):
-        path=shutil.which(name)
-        print(f"{name}：{path or '未找到，请加入 PATH'}",flush=True)
+        try:
+            path=engine.tool(name)
+            subprocess.run([path,"-version"],check=True,timeout=15,stdout=subprocess.DEVNULL)
+            print(f"{name}：{path}",flush=True)
+        except (ValueError,OSError,subprocess.SubprocessError) as e:
+            print(f"{name} 未就绪：{e}",flush=True)
     try:
         folder,py=engine.engine_paths(SimpleNamespace(engine=root,engine_python=settings.get("engine_python")))
         print("Applio 解释器：",py,flush=True)
         commands=[[py,"core.py","--version"],[py,"-c",
             "import torch; print('PyTorch',torch.__version__,'CUDA',torch.cuda.is_available())"]]
         for cmd in commands:
-            result=subprocess.run(cmd,cwd=folder,timeout=60)
-            if result.returncode:
-                print(f"引擎检查返回 {result.returncode}",flush=True)
-    except (ValueError,OSError,subprocess.TimeoutExpired) as e:
+            subprocess.run(cmd,cwd=folder,timeout=60,check=True)
+        print("Applio：可用",flush=True)
+    except (ValueError,OSError,subprocess.SubprocessError) as e:
         print(f"Applio 未就绪：{e}",flush=True)
     try:
-        py=engine.required_file(settings.get("split_python") or "")
+        py=engine.splitter_python(settings.get("split_python"))
         check=subprocess.run([py,"-c","import demucs.separate"],timeout=45)
         print("Demucs："+("可用" if check.returncode==0 else "导入失败"),flush=True)
     except (ValueError,OSError,subprocess.TimeoutExpired) as e:
@@ -43,6 +46,16 @@ def run(store,key):
         store.job_state(key,"running",text)
         print(text,flush=True)
     stage("准备任务")
+    if kind=="setup":
+        if os.name!="nt":
+            raise ValueError("此依赖安装入口适用于 Windows。")
+        component=spec["component"]
+        if component not in ("ffmpeg","splitter"):
+            raise ValueError("未知安装组件。")
+        stage("安装 FFmpeg" if component=="ffmpeg" else "准备 FFmpeg 和 CPU 分轨环境")
+        subprocess.run(["cmd.exe","/d","/c","setup-splitter.cmd","--batch",component],
+                       cwd=engine.BASE,check=True)
+        return {}
     if kind=="assets":
         stage("由 Applio 下载预训练和特征提取资源")
         engine.engine_run(engine.engine_paths(SimpleNamespace(**spec)), "prerequisites")
@@ -111,11 +124,14 @@ def run(store,key):
         model=store.get("models",spec["model"])
         args=SimpleNamespace(**dict(spec["params"],**spec["settings"],song=spec["song"],dry=spec["dry"],
                     out=store.root/"outputs",model=model["weights"],index=model["idx"],embedder=model["embedder"]))
+        if not args.dry:
+            args.split_python=engine.splitter_python(args.split_python)
         return engine.cover(args,stage)
     raise ValueError(f"未知任务 {kind}")
 
 
 def main():
+    engine.include_winget_links()
     store=Studio(sys.argv[1]); key=sys.argv[2]
     from .jobs import lock_at
     lock=lock_at(store.root,key)

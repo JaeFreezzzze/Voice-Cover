@@ -19,7 +19,8 @@ from .engine import ffmpeg, required_file
 ROLES = {"train": "训练", "holdout": "评估", "archived": "归档"}
 EMBEDDERS = ["contentvec", "chinese-hubert-base", "spin", "spin-v2"]
 TYPES = {"ingest": "导入音频", "train": "模型训练", "model": "导入模型", "cover": "歌声转换",
-         "assets": "下载基础资源", "bundle": "导出训练包", "export": "导出声音模型", "check": "检查环境"}
+         "assets": "下载基础资源", "bundle": "导出训练包", "export": "导出声音模型", "check": "检查环境",
+         "setup": "安装运行组件"}
 STATUS = {"pending": "待执行", "running": "运行中", "done": "已完成", "error": "失败", "interrupted": "已中断"}
 TRAIN_DEFAULT = dict(name="我的歌声", device="cpu", rate=40000, epochs=100, batch=2, interval=10,
                      cores=min(os.cpu_count() or 1, 4), f0="rmvpe", embedder="contentvec")

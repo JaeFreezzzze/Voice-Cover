@@ -26,12 +26,32 @@ def required_file(value):
 def tool(name):
     path = shutil.which(name)
     if not path:
-        raise ValueError(f"请先安装 {name} 并加入 PATH。")
+        raise ValueError(f"未找到 {name}。Windows 可在「运行环境」点击「安装 FFmpeg」，或将含 ffmpeg 和 ffprobe 的 bin 目录加入 PATH。")
     return path
 
 
+def include_winget_links():
+    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        links = Path(os.environ["LOCALAPPDATA"]) / "Microsoft" / "WinGet" / "Links"
+        if links.is_dir():
+            os.environ["PATH"] = os.pathsep.join(filter(None, (os.environ.get("PATH"), str(links))))
+
+
+def splitter_python(configured):
+    if configured:
+        return required_file(configured)
+    local = BASE / ".splitter" / "Scripts" / "python.exe"
+    if local.is_file():
+        return local
+    raise ValueError("尚未配置 Demucs。整曲分轨时可在「运行环境」点击「安装 CPU 分轨」，或选择已有 Demucs 环境的 python.exe。")
+
+
 def engine_paths(args):
+    if not args.engine:
+        raise ValueError("尚未配置 Applio。请在「运行环境」下载并解压 3.7.2 Windows 包，选择含 core.py 的文件夹。")
     root = Path(args.engine).expanduser().resolve()
+    if not (root / "core.py").is_file():
+        raise ValueError(f"所选目录中找不到 core.py：{root}。请选择解压后的 Applio 引擎目录。")
     required_file(root / "core.py")
     if args.engine_python:
         return root, required_file(args.engine_python)
@@ -203,6 +223,7 @@ def cover(args, stage=print):
 
 
 def main():
+    include_winget_links()
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     t = commands.add_parser("train", help="在自己的 GPU 环境微调模型")

@@ -6,11 +6,16 @@ import struct
 import tempfile
 import unittest
 import wave
+from contextlib import redirect_stdout
+from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import patch
 from zipfile import ZipFile
 
+from voice_studio import engine
 from voice_studio.engine import duration, mix
 from voice_studio.store import Studio, TRAIN_DEFAULT
-from voice_studio.worker import run
+from voice_studio.worker import diagnostics, run
 
 def tone(path,frames=9600,value=2400):
     with wave.open(str(path),"wb") as w:
@@ -21,6 +26,27 @@ class Workflows(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.s=Studio(self.root/"workspace");self.addCleanup(self.s.db.close)
+    def test_unconfigured_runtime(self):
+        log=StringIO()
+        with patch.object(engine,"BASE",self.root), patch.object(shutil,"which",return_value=None), redirect_stdout(log):
+            diagnostics({})
+        for expected in ("安装 FFmpeg","尚未配置 Applio","尚未配置 Demucs"):
+            self.assertIn(expected,log.getvalue())
+        self.assertNotIn("文件不存在或为空",log.getvalue())
+        with self.assertRaisesRegex(ValueError,"所选目录中找不到 core.py"):
+            engine.engine_paths(SimpleNamespace(engine=str(self.root),engine_python=None))
+
+    def test_splitter_detected_after_setup(self):
+        with patch.object(engine,"BASE",self.root):
+            with self.assertRaisesRegex(ValueError,"安装 CPU 分轨"):
+                engine.splitter_python("")
+            local=self.root/".splitter"/"Scripts"/"python.exe"
+            local.parent.mkdir(parents=True);local.write_bytes(b"fixture")
+            self.assertEqual(engine.splitter_python(""),local)
+            with self.assertRaises(ValueError):
+                engine.splitter_python(self.root/"missing.exe")
+            custom=self.root/"custom.exe";custom.write_bytes(b"fixture")
+            self.assertEqual(engine.splitter_python(custom),custom)
     def test_audio_identity_and_training_bundle(self):
         train=tone(self.root/"verse.wav");hold=tone(self.root/"unused.wav",value=2100)
         key,new=self.s.ingest(train,"train");self.assertTrue(new)

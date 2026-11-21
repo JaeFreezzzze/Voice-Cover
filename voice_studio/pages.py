@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from PyQt5.QtCore import Qt,QUrl
@@ -205,16 +206,20 @@ class CoverPage(Page):
 class SettingsPage(Page):
     def __init__(self,w):
         super().__init__(w,"运行环境")
-        default=Path(__file__).resolve().parents[1]/".splitter"/"Scripts"/"python.exe"
         s=self.store.get_setting("runtime",{});card,l=panel();l.addWidget(label("本机引擎","section"));f=fmtform()
         self.engine=PathField("dir",value=s.get("engine",""))
-        self.py=PathField(value=s.get("engine_python",""));self.split=PathField(value=s.get("split_python",str(default) if default.is_file() else ""))
+        self.engine.line.setPlaceholderText("选择解压后含 core.py 的 Applio 文件夹")
+        self.py=PathField(value=s.get("engine_python",""));self.split=PathField(value=s.get("split_python",""))
+        self.split.line.setPlaceholderText("留空时使用项目下的 .splitter 环境")
         self.py.line.setPlaceholderText("留空时自动探测 Applio 的 Python 环境")
         f.addRow("Applio 3.7.2 目录",self.engine);f.addRow("引擎解释器",self.py);f.addRow("Demucs 解释器",self.split);l.addLayout(f)
         l.addLayout(strip(button("保存配置",self.save,True),button("检查环境",self.check),button("下载引擎基础资源",self.assets),None));self.body.addWidget(card)
-        info=label("录音可直接使用。训练和换声需要 Applio 引擎；整曲翻唱还需 FFmpeg 和 Demucs。","muted")
+        info=label("训练用 Applio，纯人声换声另需 FFmpeg。带伴奏的歌曲还需安装 CPU 分轨。","muted")
         info.setWordWrap(True);self.body.addWidget(info)
-        self.body.addLayout(strip(button("Applio 官方发行版",lambda:QDesktopServices.openUrl(QUrl("https://github.com/IAHispano/Applio/releases/tag/3.7.2"))),
+        if os.name=="nt":
+            self.body.addLayout(strip(button("安装 FFmpeg",lambda:self.install("ffmpeg")),
+                                      button("安装 CPU 分轨",lambda:self.install("splitter")),None))
+        self.body.addLayout(strip(button("下载 Applio 3.7.2 Windows 包",lambda:QDesktopServices.openUrl(QUrl("https://huggingface.co/IAHispano/Applio/resolve/main/Compiled/Windows/ApplioV3.7.2.zip"))),
               button("Hugging Face 模型资源",lambda:QDesktopServices.openUrl(QUrl("https://huggingface.co/IAHispano/Applio/tree/main/Resources"))),None))
         box,l=panel();l.addWidget(label("工作目录","section"));path=label(str(self.store.root),"muted");path.setTextInteractionFlags(Qt.TextSelectableByMouse);l.addWidget(path)
         l.addLayout(strip(button("打开工作目录",lambda:QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.store.root)))),None))
@@ -223,6 +228,10 @@ class SettingsPage(Page):
         return dict(engine=self.engine.value(),engine_python=self.py.value(),split_python=self.split.value())
     def save(self):
         self.store.setting("runtime",self.values());self.w.statusBar().showMessage("运行环境已保存",4500)
+    def install(self,component):
+        if self.ready():
+            title="安装 FFmpeg" if component=="ffmpeg" else "安装 CPU 分轨"
+            self.w.submit("setup",title,dict(component=component))
     def assets(self):
         if self.ready() and self.w.engine_ok():
             self.w.submit("assets","下载上游基础资源", self.values())
