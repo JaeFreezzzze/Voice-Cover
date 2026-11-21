@@ -143,6 +143,7 @@ def open_log():
 
 
 def start(log):
+    os.environ.update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
     os.chdir(ROOT)
     if "--ready" in sys.argv:
         sys.path.insert(0, str(ROOT))

@@ -17,7 +17,7 @@ class RuntimeTests(TestCase):
     def setUp(self):
         temp = TemporaryDirectory()
         self.addCleanup(temp.cleanup)
-        self.root = Path(temp.name)
+        self.root = Path(temp.name).resolve()
     
     def test_bundled_archive_wins_without_network(self):
         cache = self.root/"runtime"/"packages"
