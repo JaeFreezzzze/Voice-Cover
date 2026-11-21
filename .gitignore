@@ -1,0 +1,12 @@
+.studio/
+.splitter/
+.venv/
+*.egg-info/
+__pycache__/
+build/
+dist/
+dataset/
+outputs/
+*.pth
+*.index
+*.vmodel
