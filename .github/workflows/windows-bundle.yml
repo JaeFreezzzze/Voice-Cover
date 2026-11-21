@@ -1,0 +1,43 @@
+name: Windows distribution with Applio
+on:
+  push:
+    branches: [main]
+    paths: ['voice_studio/__init__.py', '.github/workflows/windows-bundle.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+concurrency:
+  group: windows-distribution
+  cancel-in-progress: false
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the complete Windows ZIP and split it for GitHub Releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          python scripts/package_windows.py | split -b 1800000000 -d -a 3 --numeric-suffixes=1 - dist/Voice-Cover-Windows-x64.zip.
+          cd dist
+          sha256sum Voice-Cover-Windows-x64.zip.* > SHA256SUMS.txt
+      - name: Publish all parts together
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v$(python -c 'from voice_studio import __version__; print(__version__)')"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            test "$(gh release view "$tag" --json isDraft --jq '.isDraft')" = true || exit 0
+          else
+            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "Voice Cover Studio $tag · Windows x64" --notes "完整包包含 Applio 3.7.2。所有 .zip.001 至 .zip.004 放在同一目录，用 7-Zip 打开 .001 并解压，双击 VoiceCoverStudio.exe。使用 Git 检出的工程也可双击 EXE 自动准备依赖。"
+          fi
+          gh release upload "$tag" dist/* --clobber
+          gh release edit "$tag" --draft=false

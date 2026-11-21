@@ -7,7 +7,7 @@ import sys
 from types import SimpleNamespace
 
 from . import engine
-from .store import Studio, encode, fresh_zip, uid
+from .store import DATASET, Studio, dataset_files, encode, fresh_zip, uid
 
 
 def diagnostics(settings):
@@ -63,12 +63,18 @@ def run(store,key):
     if kind=="check":
         diagnostics(spec)
         return {}
-    if kind=="ingest":
+    if kind in ("ingest","dataset"):
         errors=[]; inserted=0; reused=0
-        for i,path in enumerate(spec["paths"],1):
-            stage(f"处理音频 {i}/{len(spec['paths'])} · {Path(path).name}")
+        files=(list(dataset_files(DATASET)) if kind=="dataset" else
+               [(p,"holdout" if Path(p).is_relative_to(DATASET/"test") else spec["role"]) for p in spec["paths"]])
+        if not files:
+            raise ValueError("请先将音频放入 dataset/train 或 dataset/test。")
+        for i,(path,role) in enumerate(files,1):
+            stage(f"处理音频 {i}/{len(files)} · {Path(path).name}")
             try:
-                _,created=store.ingest(path,spec["role"],spec.get("title"))
+                sample,created=store.ingest(path,role,spec.get("title"))
+                if (kind=="dataset" or Path(path).is_relative_to(DATASET/"test")) and not created and role=="holdout" and store.get("audio",sample)["role"]=="train":
+                    store.change_audio([sample],role="holdout")
                 inserted+=int(created); reused+=int(not created)
                 if spec.get("recorded") and Path(path).resolve().parent == (store.root/"recordings").resolve():
                     Path(path).unlink(missing_ok=True)

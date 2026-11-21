@@ -1,4 +1,4 @@
-# 歌声工作台 · Voice Cover Studio 0.2.3
+# 歌声工作台 · Voice Cover Studio 0.3.0
 
 用自己的录音训练 RVC 模型，把指定歌曲换成自己的声音。Windows 桌面应用采用 PyQt5，音频、模型元数据、训练参数和任务历史保存在本机。模型训练与转换调用 Applio 3.7.2，整曲分轨调用 Demucs，混音调用 FFmpeg。
 
@@ -6,13 +6,15 @@
 
 ## 启动
 
-Windows 10/11 x64 可使用 Python 3.12 x64（含 3.12.10）或 Python 3.11 x64。完整解压后双击根目录的 **VoiceCoverStudio.exe**。这是 Windows x64 图形启动器，使用本机的 Python，首次准备桌面环境会显示进度窗口。桌面启动器与分轨安装脚本优先复用各自已有的虚拟环境；首次创建时依次查找 `py -3.12`、`py -3.11` 和 PATH 上的 `python`。首次启动会联网安装桌面依赖。可以马上录音、导入单声道 PCM16 WAV、看波形和管理样本。上一版的 WAV 可直接在「音频库 → 导入音频」中批量选入，评估样本另设为「评估」。
+Windows 10/11 x64 使用 Python 3.12（含 3.12.10）或 3.11 x64。解压后双击 **VoiceCoverStudio.exe**。若未检测到兼容 Python，启动器会尝试用 WinGet 为当前用户安装 Python 3.12 x64。首次启动会显示准备进度，安装桌面组件，定位、校验并解压 Applio 3.7.2，准备基础权重、FFmpeg / ffprobe 和 CPU 版 Demucs（含 htdemucs 权重），最后自动保存引擎和解释器路径。再次启动复用已有环境。可在「运行环境」查看或调整配置。
 
-训练和翻唱引擎按需安装一次：
+- **完整 Windows 发行包**在 [Releases](https://github.com/JaeFreezzzze/Voice-Cover/releases)。将同一版本的所有 `.zip.00*` 分卷放在一起，用 7-Zip 打开第一卷并解压。工程内 `runtime/packages/ApplioV3.7.2.zip` 已包含上游 Windows 包。桌面依赖、CPU 分轨和缺失的模型在首次启动时可能仍需联网。
+- **Git 检出或 GitHub Source code ZIP** 可直接启动。先复用已配置的引擎、工程的 `runtime/Applio-3.7.2` 或常见的同级 Applio 文件夹。其次从 `runtime/packages`、项目根目录、用户 Downloads 目录找同名官方包。找不到时从固定的官方版本自动下载，保留下载进度，完成后核对 SHA-256。
+- 启动时若下载或安装中断，可先进入音频库和录音，下次启动会重试。首次安装日志在 `%LOCALAPPDATA%/VoiceCoverStudio/logs/startup.log`。选 CPU 即可在没有 NVIDIA 独显的电脑训练或翻唱，也可导出异机训练包。
 
-1. **训练与换声**：进入「运行环境 → 下载 Applio 3.7.2 Windows 包」，完整解压官方预编译包。在「Applio 3.7.2 目录」选择直接包含 `core.py` 的文件夹，点击「保存配置」。预编译包自带 Python，引擎解释器可留空。在「检查环境」看到 Applio 可用后，点击「下载引擎基础资源」。[官方发行说明](https://github.com/IAHispano/Applio/releases/tag/3.7.2)
-2. **压缩音频、试听和翻唱**：在「运行环境」点击「安装 FFmpeg」，任务会检查 `ffmpeg.exe`、`ffprobe.exe`，需要时通过 WinGet 安装。如果从[发行方](https://www.gyan.dev/ffmpeg/builds/)手动安装，请将解压后的 `bin` 加入 PATH，重启工作台。使用带伴奏的歌曲可直接点「安装 CPU 分轨」，它会同时准备 FFmpeg 和项目下的 `.splitter`，首次分轨下载 htdemucs。Demucs 解释器留空即可使用该环境，已有外部环境可选其 `python.exe`。双击 `setup-splitter.cmd` 也可安装。安装日志在「任务与作品」查看。
-3. **无 NVIDIA 独显**：选择「CPU · 本机」即可提交本地训练；预处理、特征提取、训练和推理都有独立阶段或日志。建议先用一小批干声、少量轮数验证安装并测量每轮耗时，再决定是否完成全量训练。若太慢，点「导出异机训练包」，在已装同版 Applio 的另一台机器运行包内 `train.py`，将生成的 `.vmodel` 导回。异机训练包需要自行传递，工作台不会上传个人录音。当前整曲分轨固定走 CPU。
+## 工程数据集
+
+自己的训练录音放在 `dataset/train/`，留作评估的录音和参考歌曲放在 `dataset/test/`。在「音频库」点「导入工程数据集」，支持子目录，按内容去重。测试目录优先，重复样本会标记为评估，训练任务仅使用音频库里标为训练的样本。可用「打开数据集目录」直接放入文件。个人音频默认被 Git 忽略。
 
 ## 工作区
 

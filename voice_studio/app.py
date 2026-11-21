@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from PyQt5.QtCore import QLockFile,Qt,QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont,QIcon
 from PyQt5.QtWidgets import (QApplication,QFrame,QHBoxLayout,QLabel,QMainWindow,QMessageBox,QPushButton,
                              QScrollArea,QStackedWidget,QVBoxLayout,QWidget)
 from . import __version__
@@ -85,8 +85,12 @@ class Window(QMainWindow):
         super().closeEvent(event)
 
 def main():
+    if os.name=="nt":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("VoiceCover.Studio")
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling,True)
     app=QApplication(sys.argv);app.setApplicationName("Voice Cover Studio")
+    app.setWindowIcon(QIcon(str(Path(__file__).with_name("assets")/"voice-cover.ico")))
     app.setFont(QFont("Microsoft YaHei UI" if os.name=="nt" else "Noto Sans CJK SC",10))
     root=workdir();root.mkdir(parents=True,exist_ok=True)
     lock=QLockFile(str(root/"desktop.lock"));lock.setStaleLockTime(0)

@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt,QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (QDialog,QDialogButtonBox,QFileDialog,QHBoxLayout,QInputDialog,QLabel,
         QLineEdit,QMessageBox,QPlainTextEdit,QSplitter,QVBoxLayout,QWidget)
-from .store import COVER_DEFAULT,EMBEDDERS,ROLES,STATUS,TRAIN_DEFAULT,TYPES,duration_text
+from .store import COVER_DEFAULT,DATASET,EMBEDDERS,ROLES,STATUS,TRAIN_DEFAULT,TYPES,duration_text
 from .widgets import (PathField,RecordDialog,Waveform,button,choices,decimal,fill,fmtform,integer,
                       label,panel,selected,strip,table)
 
@@ -31,6 +31,7 @@ class AudioPage(Page):
         self.search=QLineEdit();self.search.setPlaceholderText("搜索样本名称")
         self.role=choices([("全部用途","all")]+[(v,k) for k,v in ROLES.items()])
         self.body.addLayout(strip(self.search,self.role,button("导入音频",self.add),button("录制样本",self.record,True)))
+        self.body.addLayout(strip(button("打开数据集目录",self.open_dataset),button("导入工程数据集",self.import_dataset),None))
         self.t=table(["名称","用途","时长","采样率","峰值 dBFS"],True);self.body.addWidget(self.t,1)
         self.body.addLayout(strip(button("重命名",self.rename),button("设为训练",lambda:self.mark("train")),
                                   button("设为评估",lambda:self.mark("holdout")),button("归档",lambda:self.mark("archived")),None))
@@ -62,7 +63,14 @@ class AudioPage(Page):
     def add(self):
         if not self.ready():return
         paths=QFileDialog.getOpenFileNames(self,"导入录音","",AUDIO_FILTER)[0]
-        if paths:self.w.submit("ingest",f"导入 {len(paths)} 条音频",{"paths":paths,"role":"train"})
+        if paths:
+            self.w.submit("ingest",f"导入 {len(paths)} 条音频",{"paths":paths,"role":"train"})
+    def open_dataset(self):
+        for group in ("train","test"):
+            (DATASET/group).mkdir(parents=True,exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(DATASET)))
+    def import_dataset(self):
+        if self.ready():self.w.submit("dataset","导入工程数据集",{})
     def record(self):
         if not self.ready():return
         self.w.player.media.stop()

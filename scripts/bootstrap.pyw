@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 VENV = ROOT / ".studio"
 PYTHON = VENV / "Scripts" / "python.exe"
 TITLE = "歌声工作台"
+ICON = ROOT / "voice_studio" / "assets" / "voice-cover.ico"
 QT_CHECK = "from PyQt5 import QtWidgets, QtMultimedia"
 
 
@@ -50,6 +51,7 @@ def run(command, log, *, check=True):
 
 
 def prepare(log, report):
+    sys.path.insert(0, str(ROOT))
     if not PYTHON.is_file():
         report("正在创建 Python 桌面环境…")
         run([sys.executable, "-m", "venv", VENV], log)
@@ -57,6 +59,13 @@ def prepare(log, report):
         report("正在安装桌面组件，首次启动需要联网…")
         run([PYTHON, "-m", "pip", "--disable-pip-version-check", "install", "-e", "."], log)
         run([PYTHON, "-I", "-c", QT_CHECK], log)
+    from voice_studio.runtime import prepare_runtime
+    try:
+        prepare_runtime(ROOT, log, report)
+    except Exception as exc:
+        traceback.print_exc(file=log)
+        log.flush()
+        show_error(f"音频引擎准备未完成。下次启动会继续。可以先使用音频库。\n\n{exc}\n\n日志：{log.name}")
 
 
 def prepare_with_status(log):
@@ -78,12 +87,13 @@ def prepare_with_status(log):
         return
 
     window.title(TITLE)
+    window.iconbitmap(str(ICON))
     window.resizable(False, False)
     window.protocol("WM_DELETE_WINDOW", window.iconify)
     frame = ttk.Frame(window, padding=(22, 18))
     frame.pack(fill="both", expand=True)
     status = tk.StringVar(value="正在检查桌面组件…")
-    ttk.Label(frame, textvariable=status, width=40).pack(anchor="w")
+    ttk.Label(frame, textvariable=status, width=56).pack(anchor="w")
     bar = ttk.Progressbar(frame, mode="indeterminate")
     bar.pack(fill="x", pady=(14, 0))
     bar.start(15)
@@ -134,18 +144,11 @@ def open_log():
 
 def start(log):
     os.chdir(ROOT)
-    if os.path.normcase(os.path.abspath(sys.executable)) == os.path.normcase(str(PYTHON)):
-        try:
-            from PyQt5 import QtMultimedia, QtWidgets  # noqa: F401
-        except (ImportError, OSError):
-            pass
-        else:
-            sys.path.insert(0, str(ROOT))
-            from voice_studio.app import main
-            return main()
-
     if "--ready" in sys.argv:
-        raise RuntimeError("桌面环境无法加载 Qt，请查看日志中的安装和导入结果。")
+        sys.path.insert(0, str(ROOT))
+        from voice_studio.app import main
+        return main()
+
     with setup_lock() as acquired:
         if not acquired:
             return 0

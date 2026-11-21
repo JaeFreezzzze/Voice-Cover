@@ -65,6 +65,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, LPWSTR command, int 
     if (start_with(L"py.exe -3.12", supported)) return 0;
     if (start_with(L"py.exe -3.11", supported)) return 0;
     if (start_with(L"python.exe", supported)) return 0;
+    if (run_python(L"cmd.exe", L"/d /c scripts\\setup-python.cmd", TRUE) &&
+        start_with(L".studio\\Scripts\\python.exe", existing)) return 0;
     MessageBoxW(NULL, L"未能启动 64 位 Python。请确认已安装 Python 3.12（含 3.12.10）或 3.11，并通过 py 启动器注册或添加到 PATH。", title, MB_OK | MB_ICONERROR);
     return 1;
 }

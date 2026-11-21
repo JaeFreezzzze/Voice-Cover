@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-cover-studio"
-version = "0.2.3"
+version = "0.3.0"
 description = "个人歌声模型训练、管理与 AI 翻唱桌面工作台"
 requires-python = ">=3.11"
 dependencies = ["PyQt5>=5.15.10,<5.16"]
@@ -14,3 +14,6 @@ voice-cover-studio = "voice_studio.app:main"
 
 [tool.setuptools.packages.find]
 include = ["voice_studio*"]
+
+[tool.setuptools.package-data]
+voice_studio = ["assets/*.ico"]
